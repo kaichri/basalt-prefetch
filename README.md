@@ -10,8 +10,8 @@ in system RAM, and optionally on more GPUs. The server speaks the OpenAI and Ant
 
 ## What this fork changes
 
-This is a fork of [jesdga95/basalt](https://github.com/jesdga95/basalt) carrying one small change on top of the
-v0.4.0 release: Windows asked `PrefetchVirtualMemory` once per 128 KiB window, so the ~21 windows of one mapped
+This is a fork of [jesdga95/basalt](https://github.com/jesdga95/basalt) carrying one small change on top of upstream
+main: Windows asked `PrefetchVirtualMemory` once per 128 KiB window, so the ~21 windows of one mapped
 expert blob were read one after another. The single-range ask now gathers the windows of every range into one
 `PrefetchVirtualMemory` call (flushed every 512 windows, so the reads in flight stay bounded), and a decode
 expert miss reads its whole blob side by side instead of window by window.
