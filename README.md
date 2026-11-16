@@ -8,6 +8,26 @@ in system RAM, and optionally on more GPUs. The server speaks the OpenAI and Ant
 
 **Help wanted:** spare Blackwell compute for testing? See [Contributing](CONTRIBUTING.md#other-ways-to-help).
 
+## What this fork changes
+
+This is a fork of [jesdga95/basalt](https://github.com/jesdga95/basalt) carrying one small change on top of the
+v0.4.0 release: Windows asked `PrefetchVirtualMemory` once per 128 KiB window, so the ~21 windows of one mapped
+expert blob were read one after another. The single-range ask now gathers the windows of every range into one
+`PrefetchVirtualMemory` call (flushed every 512 windows, so the reads in flight stay bounded), and a decode
+expert miss reads its whole blob side by side instead of window by window.
+
+Measured on an RTX 5090 at a 600 W power limit, alternating the two builds in one session with the same expert
+tiers, one fresh request per run:
+
+- Short-prompt decode: median 149 tok/s vs 128 tok/s over ten runs per build, 16% faster. Draft acceptance was
+  the same on both builds, so the gain is not drafting luck.
+- 128K decode: 118 to 148 tok/s vs 96 to 128 tok/s across four runs per build.
+- 128K time to first token: unchanged, 24.0 s vs 23.9 s.
+
+The parity suite passes (`platform_memory_test`, `direct_file_async_test`, `native_expert_parity_nvfp4`,
+`s2_expert_grouped_parity`). The change touches `include/basalt/platform/memory.hpp` and `src/platform/memory.cpp`
+only. Absolute numbers vary with system state between sessions; only the same-session alternation is comparable.
+
 ## Requirements
 
 - Linux x86-64 with AVX2, or Windows 10 1903+ x64 ([platforms](docs/platforms.md)).
